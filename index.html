@@ -1,0 +1,825 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#0a0a0f">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Trinity">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>Project Trinity</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0a0a0f;
+  --bg2: #111118;
+  --bg3: #1a1a24;
+  --bg4: #22222e;
+  --accent: #7c6af7;
+  --accent2: #5eead4;
+  --accent3: #f472b6;
+  --text: #f0f0f5;
+  --text2: #9090a8;
+  --text3: #5a5a72;
+  --border: rgba(255,255,255,0.07);
+  --border2: rgba(255,255,255,0.12);
+  --success: #34d399;
+  --warning: #fbbf24;
+  --danger: #f87171;
+  --r: 14px;
+  --r2: 20px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+html, body { height: 100%; background: var(--bg); color: var(--text); font-family: 'Syne', sans-serif; overflow: hidden; }
+body { display: flex; flex-direction: column; }
+
+/* PIN SCREEN */
+#pin-screen {
+  position: fixed; inset: 0; background: var(--bg); z-index: 1000;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding: 2rem;
+}
+.pin-logo {
+  font-size: 13px; font-weight: 600; letter-spacing: 0.2em; color: var(--accent);
+  text-transform: uppercase; margin-bottom: 2.5rem;
+}
+.pin-title { font-size: 26px; font-weight: 800; margin-bottom: 0.4rem; text-align: center; }
+.pin-sub { font-size: 13px; color: var(--text2); margin-bottom: 2.5rem; text-align: center; }
+.pin-dots { display: flex; gap: 14px; margin-bottom: 2.5rem; }
+.pin-dot {
+  width: 16px; height: 16px; border-radius: 50%;
+  border: 2px solid var(--text3); background: transparent;
+  transition: all 0.2s;
+}
+.pin-dot.filled { background: var(--accent); border-color: var(--accent); }
+.pin-dot.error { background: var(--danger); border-color: var(--danger); animation: shake 0.4s ease; }
+.pin-grid { display: grid; grid-template-columns: repeat(3, 72px); gap: 12px; }
+.pin-btn {
+  width: 72px; height: 72px; border-radius: 50%; border: 1.5px solid var(--border2);
+  background: var(--bg3); color: var(--text); font-family: 'Syne', sans-serif;
+  font-size: 22px; font-weight: 600; cursor: pointer; transition: all 0.15s;
+  display: flex; align-items: center; justify-content: center;
+}
+.pin-btn:active { background: var(--bg4); transform: scale(0.93); }
+.pin-btn.del { font-size: 18px; color: var(--text2); }
+.pin-btn.empty { background: transparent; border-color: transparent; pointer-events: none; }
+.pin-error { color: var(--danger); font-size: 13px; margin-top: 1rem; min-height: 20px; text-align: center; }
+.pin-setup-note { font-size: 12px; color: var(--text3); margin-top: 1.5rem; text-align: center; line-height: 1.6; }
+
+/* MAIN APP */
+#app { display: none; flex-direction: column; height: 100%; }
+.header {
+  padding: 1rem 1.25rem 0.75rem;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg);
+  flex-shrink: 0;
+}
+.header-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.25rem; }
+.header-title { font-size: 20px; font-weight: 800; letter-spacing: -0.02em; }
+.header-title span { color: var(--accent); }
+.header-date { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--text3); }
+.header-weight { font-family: 'DM Mono', monospace; font-size: 12px; color: var(--accent2); }
+
+.content { flex: 1; overflow-y: auto; padding: 1rem 1.25rem 6rem; scroll-behavior: smooth; }
+.content::-webkit-scrollbar { display: none; }
+
+/* BOTTOM NAV */
+.bottom-nav {
+  position: fixed; bottom: 0; left: 0; right: 0;
+  background: var(--bg2); border-top: 1px solid var(--border);
+  display: flex; padding: 0.6rem 0 0.8rem;
+  z-index: 100;
+}
+.nav-item {
+  flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px;
+  background: none; border: none; color: var(--text3); cursor: pointer;
+  font-family: 'Syne', sans-serif; font-size: 10px; font-weight: 600;
+  letter-spacing: 0.04em; padding: 0.3rem 0; transition: color 0.2s;
+}
+.nav-item.active { color: var(--accent); }
+.nav-icon { font-size: 22px; line-height: 1; }
+
+/* PAGES */
+.page { display: none; }
+.page.active { display: block; animation: fadeUp 0.25s ease; }
+@keyframes fadeUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+/* CARDS */
+.card {
+  background: var(--bg2); border: 1px solid var(--border); border-radius: var(--r2);
+  padding: 1.1rem 1.2rem; margin-bottom: 1rem;
+}
+.card-label { font-size: 11px; font-weight: 600; letter-spacing: 0.12em; color: var(--text3); text-transform: uppercase; margin-bottom: 0.75rem; }
+
+/* METRIC ROW */
+.metric-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 1rem; }
+.metric-card {
+  background: var(--bg2); border: 1px solid var(--border); border-radius: var(--r);
+  padding: 1rem; position: relative; overflow: hidden;
+}
+.metric-card::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+  border-radius: 2px 2px 0 0;
+}
+.metric-card.steps::before { background: var(--accent); }
+.metric-card.water::before { background: var(--accent2); }
+.metric-card.cals::before { background: var(--warning); }
+.metric-card.deficit::before { background: var(--accent3); }
+.metric-label { font-size: 10px; font-weight: 600; letter-spacing: 0.1em; color: var(--text3); text-transform: uppercase; margin-bottom: 0.4rem; }
+.metric-value { font-family: 'DM Mono', monospace; font-size: 24px; font-weight: 500; color: var(--text); line-height: 1; }
+.metric-value .unit { font-size: 12px; color: var(--text2); }
+.metric-goal { font-size: 10px; color: var(--text3); margin-top: 3px; font-family: 'DM Mono', monospace; }
+
+/* PROGRESS BARS */
+.prog-wrap { margin-bottom: 0.85rem; }
+.prog-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; }
+.prog-name { font-size: 12px; font-weight: 600; color: var(--text2); }
+.prog-val { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--text3); }
+.prog-track { height: 6px; background: var(--bg4); border-radius: 3px; overflow: hidden; }
+.prog-fill { height: 100%; border-radius: 3px; transition: width 0.5s cubic-bezier(0.4,0,0.2,1); }
+
+/* WEIGHT DISPLAY */
+.weight-hero { display: flex; align-items: baseline; gap: 12px; margin-bottom: 1rem; flex-wrap: wrap; }
+.weight-big { font-family: 'DM Mono', monospace; font-size: 44px; font-weight: 500; color: var(--text); line-height: 1; }
+.weight-big .wunit { font-size: 18px; color: var(--text2); }
+.weight-stat { }
+.weight-stat .ws-val { font-family: 'DM Mono', monospace; font-size: 20px; font-weight: 500; }
+.weight-stat .ws-label { font-size: 10px; color: var(--text3); letter-spacing: 0.08em; text-transform: uppercase; }
+
+/* INPUTS */
+.input-group { margin-bottom: 0.85rem; }
+.input-group label { display: block; font-size: 11px; font-weight: 600; letter-spacing: 0.1em; color: var(--text3); text-transform: uppercase; margin-bottom: 6px; }
+.input-group input, .input-group select {
+  width: 100%; padding: 12px 14px; background: var(--bg3); border: 1px solid var(--border2);
+  border-radius: var(--r); color: var(--text); font-family: 'Syne', sans-serif;
+  font-size: 15px; outline: none; transition: border-color 0.2s;
+  -webkit-appearance: none; appearance: none;
+}
+.input-group input:focus, .input-group select:focus { border-color: var(--accent); }
+.btn-primary {
+  width: 100%; padding: 14px; background: var(--accent); border: none; border-radius: var(--r);
+  color: #fff; font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 700;
+  cursor: pointer; transition: opacity 0.15s, transform 0.1s; letter-spacing: 0.02em;
+}
+.btn-primary:active { opacity: 0.85; transform: scale(0.98); }
+
+/* QUICK CHIPS */
+.chips { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 1rem; }
+.chip {
+  padding: 7px 13px; background: var(--bg3); border: 1px solid var(--border2);
+  border-radius: 20px; font-size: 12px; font-weight: 600; color: var(--text2);
+  cursor: pointer; transition: all 0.15s; white-space: nowrap;
+}
+.chip:active { background: var(--bg4); color: var(--accent); border-color: var(--accent); }
+
+/* LOG LIST */
+.log-item {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 0; border-bottom: 1px solid var(--border);
+}
+.log-item:last-child { border-bottom: none; }
+.log-left { display: flex; align-items: center; gap: 10px; }
+.log-icon { width: 34px; height: 34px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; }
+.log-icon.steps { background: rgba(124,106,247,0.15); }
+.log-icon.water { background: rgba(94,234,212,0.15); }
+.log-icon.meal { background: rgba(52,211,153,0.15); }
+.log-icon.snack { background: rgba(251,191,36,0.15); }
+.log-text { font-size: 13px; font-weight: 600; color: var(--text); }
+.log-time { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--text3); margin-top: 1px; }
+.log-cal { font-family: 'DM Mono', monospace; font-size: 12px; color: var(--text2); }
+.del-btn { background: none; border: none; color: var(--text3); cursor: pointer; font-size: 18px; padding: 4px 8px; }
+.del-btn:active { color: var(--danger); }
+
+/* MILESTONES */
+.milestone-item { display: flex; align-items: center; justify-content: space-between; padding: 9px 0; border-bottom: 1px solid var(--border); }
+.milestone-item:last-child { border-bottom: none; }
+.milestone-icon { font-size: 16px; margin-right: 10px; }
+.milestone-date { font-size: 13px; font-weight: 600; }
+.milestone-target { font-family: 'DM Mono', monospace; font-size: 13px; color: var(--text2); }
+
+/* STREAK */
+.streak-row { display: flex; gap: 8px; flex-wrap: wrap; }
+.streak-day { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.streak-dot { width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; letter-spacing: 0.05em; }
+.streak-dot.hit { background: rgba(52,211,153,0.2); color: var(--success); border: 1px solid rgba(52,211,153,0.3); }
+.streak-dot.miss { background: var(--bg3); color: var(--text3); border: 1px solid var(--border); }
+.streak-lbl { font-size: 9px; color: var(--text3); font-family: 'DM Mono', monospace; }
+
+/* TIP BANNER */
+.tip-banner {
+  background: linear-gradient(135deg, rgba(124,106,247,0.12), rgba(94,234,212,0.08));
+  border: 1px solid rgba(124,106,247,0.2); border-radius: var(--r);
+  padding: 12px 14px; margin-bottom: 1rem; font-size: 13px; color: var(--text2); line-height: 1.5;
+}
+
+/* SETTINGS */
+.setting-row { display: flex; align-items: center; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid var(--border); }
+.setting-row:last-child { border-bottom: none; }
+.setting-label { font-size: 14px; font-weight: 600; }
+.setting-sub { font-size: 12px; color: var(--text3); margin-top: 2px; }
+.btn-sm { padding: 8px 16px; background: var(--bg3); border: 1px solid var(--border2); border-radius: 10px; color: var(--text2); font-family: 'Syne', sans-serif; font-size: 12px; font-weight: 600; cursor: pointer; }
+.btn-danger { border-color: rgba(248,113,113,0.3); color: var(--danger); }
+.btn-sm:active { opacity: 0.7; }
+
+/* WEIGHT CHART simple */
+.chart-wrap { position: relative; width: 100%; height: 160px; margin-top: 1rem; }
+
+/* SECTION TITLE */
+.section-title { font-size: 11px; font-weight: 700; letter-spacing: 0.14em; color: var(--text3); text-transform: uppercase; margin-bottom: 0.75rem; margin-top: 0.25rem; }
+
+@keyframes shake {
+  0%,100% { transform: translateX(0); }
+  20%,60% { transform: translateX(-6px); }
+  40%,80% { transform: translateX(6px); }
+}
+</style>
+</head>
+<body>
+
+<!-- PIN SCREEN -->
+<div id="pin-screen">
+  <div class="pin-logo">Project Trinity</div>
+  <div class="pin-title" id="pin-title">Enter PIN</div>
+  <div class="pin-sub" id="pin-sub">Your health data stays locked</div>
+  <div class="pin-dots" id="pin-dots">
+    <div class="pin-dot" id="d0"></div>
+    <div class="pin-dot" id="d1"></div>
+    <div class="pin-dot" id="d2"></div>
+    <div class="pin-dot" id="d3"></div>
+  </div>
+  <div class="pin-grid" id="pin-grid">
+    <button class="pin-btn" onclick="pinPress('1')">1</button>
+    <button class="pin-btn" onclick="pinPress('2')">2</button>
+    <button class="pin-btn" onclick="pinPress('3')">3</button>
+    <button class="pin-btn" onclick="pinPress('4')">4</button>
+    <button class="pin-btn" onclick="pinPress('5')">5</button>
+    <button class="pin-btn" onclick="pinPress('6')">6</button>
+    <button class="pin-btn" onclick="pinPress('7')">7</button>
+    <button class="pin-btn" onclick="pinPress('8')">8</button>
+    <button class="pin-btn" onclick="pinPress('9')">9</button>
+    <button class="pin-btn empty"></button>
+    <button class="pin-btn" onclick="pinPress('0')">0</button>
+    <button class="pin-btn del" onclick="pinDel()">⌫</button>
+  </div>
+  <div class="pin-error" id="pin-error"></div>
+  <div class="pin-setup-note" id="pin-setup-note"></div>
+</div>
+
+<!-- MAIN APP -->
+<div id="app">
+  <div class="header">
+    <div class="header-top">
+      <div class="header-title">Project <span>Trinity</span></div>
+      <div class="header-weight" id="h-weight">— kg</div>
+    </div>
+    <div class="header-date" id="h-date"></div>
+  </div>
+
+  <div class="content" id="content">
+    <!-- dashboard -->
+    <div id="page-dashboard" class="page active">
+      <div class="tip-banner" id="tip-banner">💡 Loading your daily tip...</div>
+      <div class="metric-row">
+        <div class="metric-card steps">
+          <div class="metric-label">Steps</div>
+          <div class="metric-value" id="m-steps">0</div>
+          <div class="metric-goal">goal 10,000</div>
+        </div>
+        <div class="metric-card water">
+          <div class="metric-label">Water</div>
+          <div class="metric-value" id="m-water">0<span class="unit">ml</span></div>
+          <div class="metric-goal">goal 3,000ml</div>
+        </div>
+        <div class="metric-card cals">
+          <div class="metric-label">Calories</div>
+          <div class="metric-value" id="m-cal">0</div>
+          <div class="metric-goal">limit 2,200</div>
+        </div>
+        <div class="metric-card deficit">
+          <div class="metric-label">Deficit</div>
+          <div class="metric-value" id="m-def">0</div>
+          <div class="metric-goal">need 665/day</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-label">Today's progress</div>
+        <div class="prog-wrap">
+          <div class="prog-header"><span class="prog-name">Steps</span><span class="prog-val" id="pt-steps">0 / 10,000</span></div>
+          <div class="prog-track"><div class="prog-fill" id="pf-steps" style="width:0%;background:var(--accent)"></div></div>
+        </div>
+        <div class="prog-wrap">
+          <div class="prog-header"><span class="prog-name">Water</span><span class="prog-val" id="pt-water">0 / 3,000ml</span></div>
+          <div class="prog-track"><div class="prog-fill" id="pf-water" style="width:0%;background:var(--accent2)"></div></div>
+        </div>
+        <div class="prog-wrap" style="margin-bottom:0">
+          <div class="prog-header"><span class="prog-name">Calories</span><span class="prog-val" id="pt-cal">0 / 2,200</span></div>
+          <div class="prog-track"><div class="prog-fill" id="pf-cal" style="width:0%;background:var(--warning)"></div></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-label">Weight journey</div>
+        <div class="weight-hero">
+          <div>
+            <div class="weight-big" id="w-curr">100.0<span class="wunit">kg</span></div>
+            <div style="font-size:10px;color:var(--text3);letter-spacing:0.08em;text-transform:uppercase;margin-top:3px;">current</div>
+          </div>
+          <div class="weight-stat">
+            <div class="ws-val" style="color:var(--success)" id="w-lost">0.0<span style="font-size:13px;color:var(--text2)">kg</span></div>
+            <div class="ws-label">lost</div>
+          </div>
+          <div class="weight-stat">
+            <div class="ws-val" style="color:var(--accent3)" id="w-rem">5.0<span style="font-size:13px;color:var(--text2)">kg</span></div>
+            <div class="ws-label">to go</div>
+          </div>
+        </div>
+        <div class="prog-track" style="height:8px;">
+          <div class="prog-fill" id="pf-weight" style="width:0%;background:linear-gradient(90deg,var(--accent),var(--accent3))"></div>
+        </div>
+        <div style="font-size:11px;color:var(--text3);margin-top:6px;font-family:'DM Mono',monospace;" id="w-eta">0% · target Jul 31, 2026</div>
+      </div>
+    </div>
+
+    <!-- log -->
+    <div id="page-log" class="page">
+      <div class="card">
+        <div class="card-label">👟 Steps</div>
+        <div class="input-group">
+          <label>Step count</label>
+          <input type="number" id="in-steps" placeholder="e.g. 8000" inputmode="numeric">
+        </div>
+        <button class="btn-primary" onclick="logSteps()">Add steps</button>
+      </div>
+
+      <div class="card">
+        <div class="card-label">💧 Water</div>
+        <div class="input-group">
+          <label>Amount</label>
+          <select id="in-water">
+            <option value="150">Small glass — 150ml</option>
+            <option value="250" selected>Regular glass — 250ml</option>
+            <option value="500">Bottle — 500ml</option>
+            <option value="750">Large bottle — 750ml</option>
+            <option value="1000">1 litre</option>
+          </select>
+        </div>
+        <button class="btn-primary" onclick="logWater()">Add water</button>
+      </div>
+
+      <div class="card">
+        <div class="card-label">🍽 Food</div>
+        <div class="section-title">Quick add</div>
+        <div class="chips">
+          <div class="chip" onclick="quickFood('Dal + rice','meal',450)">Dal rice ~450</div>
+          <div class="chip" onclick="quickFood('2 rotis + sabzi','meal',300)">Roti sabzi ~300</div>
+          <div class="chip" onclick="quickFood('2 boiled eggs','meal',140)">2 eggs ~140</div>
+          <div class="chip" onclick="quickFood('Omelette (2 egg)','meal',160)">Omelette ~160</div>
+          <div class="chip" onclick="quickFood('Curd bowl','meal',100)">Curd ~100</div>
+          <div class="chip" onclick="quickFood('Roasted chana','snack',120)">Chana ~120</div>
+          <div class="chip" onclick="quickFood('Banana','snack',90)">Banana ~90</div>
+          <div class="chip" onclick="quickFood('Paneer sabzi','meal',220)">Paneer ~220</div>
+          <div class="chip" onclick="quickFood('Poha / Upma','meal',200)">Poha ~200</div>
+          <div class="chip" onclick="quickFood('Chai (no sugar)','snack',20)">Chai ~20</div>
+        </div>
+        <div class="section-title">Custom entry</div>
+        <div class="input-group">
+          <label>Item name</label>
+          <input type="text" id="in-food-name" placeholder="e.g. Chicken curry">
+        </div>
+        <div class="input-group">
+          <label>Calories (kcal)</label>
+          <input type="number" id="in-food-cal" placeholder="e.g. 350" inputmode="numeric">
+        </div>
+        <div class="input-group">
+          <label>Type</label>
+          <select id="in-food-type">
+            <option value="meal">Meal</option>
+            <option value="snack">Snack</option>
+          </select>
+        </div>
+        <button class="btn-primary" onclick="logFood()">Add food</button>
+      </div>
+    </div>
+
+    <!-- history -->
+    <div id="page-history" class="page">
+      <div class="card">
+        <div class="card-label">7-day step streak</div>
+        <div class="streak-row" id="streak-row"></div>
+      </div>
+      <div class="card">
+        <div class="card-label">Today's log</div>
+        <div id="log-list"><div style="color:var(--text3);font-size:13px;padding:0.5rem 0;">Nothing logged yet today.</div></div>
+      </div>
+    </div>
+
+    <!-- weight -->
+    <div id="page-weight" class="page">
+      <div class="card">
+        <div class="card-label">📏 Log weight</div>
+        <div class="input-group">
+          <label>Weight (kg)</label>
+          <input type="number" id="in-weight" placeholder="e.g. 99.4" step="0.1" inputmode="decimal">
+        </div>
+        <button class="btn-primary" onclick="logWeight()">Save weight</button>
+      </div>
+      <div class="card">
+        <div class="card-label">Weekly milestones</div>
+        <div id="milestones"></div>
+      </div>
+      <div class="card">
+        <div class="card-label">Weight log</div>
+        <div id="w-history"></div>
+        <div class="chart-wrap"><canvas id="wChart" role="img" aria-label="Weight trend over time"></canvas></div>
+      </div>
+    </div>
+
+    <!-- settings -->
+    <div id="page-settings" class="page">
+      <div class="card">
+        <div class="card-label">Account</div>
+        <div class="setting-row">
+          <div><div class="setting-label">Change PIN</div><div class="setting-sub">Reset your 4-digit lock code</div></div>
+          <button class="btn-sm" onclick="changePin()">Change</button>
+        </div>
+        <div class="setting-row">
+          <div><div class="setting-label">Lock app</div><div class="setting-sub">Return to PIN screen</div></div>
+          <button class="btn-sm" onclick="lockApp()">Lock</button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-label">Data</div>
+        <div class="setting-row">
+          <div><div class="setting-label">Clear today's logs</div><div class="setting-sub">Remove entries from today only</div></div>
+          <button class="btn-sm btn-danger" onclick="clearToday()">Clear</button>
+        </div>
+        <div class="setting-row">
+          <div><div class="setting-label">Reset all data</div><div class="setting-sub">Wipe everything — cannot undo</div></div>
+          <button class="btn-sm btn-danger" onclick="resetAll()">Reset</button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-label">About</div>
+        <div style="font-size:13px;color:var(--text3);line-height:1.7;">
+          Project Trinity Health Tracker<br>
+          Built for the 100 → 95 kg goal by Jul 31, 2026.<br>
+          All data stored locally on this device.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- BOTTOM NAV -->
+  <nav class="bottom-nav">
+    <button class="nav-item active" onclick="showPage('dashboard',this)">
+      <span class="nav-icon">⬡</span>Home
+    </button>
+    <button class="nav-item" onclick="showPage('log',this)">
+      <span class="nav-icon">＋</span>Log
+    </button>
+    <button class="nav-item" onclick="showPage('history',this)">
+      <span class="nav-icon">◷</span>History
+    </button>
+    <button class="nav-item" onclick="showPage('weight',this)">
+      <span class="nav-icon">◎</span>Weight
+    </button>
+    <button class="nav-item" onclick="showPage('settings',this)">
+      <span class="nav-icon">⊙</span>Settings
+    </button>
+  </nav>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script>
+const PIN_KEY = 'trinity_pin';
+const DATA_KEY = 'trinity_data';
+const TDEE = 2700, STEP_GOAL = 10000, WATER_GOAL = 3000, CAL_GOAL = 2200;
+const START_W = 100, TARGET_W = 95;
+
+const MILESTONES = [
+  {date:'Jun 10',target:99.4},{date:'Jun 17',target:98.8},
+  {date:'Jun 24',target:98.1},{date:'Jul 1',target:97.5},
+  {date:'Jul 8',target:96.9},{date:'Jul 15',target:96.2},
+  {date:'Jul 22',target:95.6},{date:'Jul 31',target:95.0}
+];
+
+const TIPS = [
+  "Drink 500ml water before every meal — reduces intake by ~13% automatically.",
+  "Morning walk burns ~280 kcal in 35 min at your weight. Make it non-negotiable.",
+  "No liquid calories — cold drinks, sweet chai = 150–300 kcal wasted.",
+  "Dinner before 8 PM. Late meals store more fat due to lower activity.",
+  "Protein at every meal keeps you full and burns 25% of its own calories digesting.",
+  "Take stairs always — over a week it adds hundreds of kcal burned.",
+  "Sleep 7–8 hrs. Poor sleep spikes hunger hormones by ~300 kcal/day.",
+  "Half your plate = dal / sabzi / protein. Non-negotiable rule.",
+  "Post-meal 10 min walk aids digestion and adds ~50 kcal burn.",
+  "Weigh every Tuesday morning, fasted, same conditions every time."
+];
+
+// ── PIN LOGIC ──
+let pinBuffer = '';
+let pinMode = 'enter'; // 'setup' | 'enter' | 'confirm'
+let pinSetupFirst = '';
+
+function initPin() {
+  const stored = localStorage.getItem(PIN_KEY);
+  if (!stored) {
+    pinMode = 'setup';
+    document.getElementById('pin-title').textContent = 'Create your PIN';
+    document.getElementById('pin-sub').textContent = 'Choose a 4-digit code to lock your health data';
+    document.getElementById('pin-setup-note').textContent = 'You will need this PIN every time you open the app.';
+  } else {
+    pinMode = 'enter';
+    document.getElementById('pin-title').textContent = 'Enter PIN';
+    document.getElementById('pin-sub').textContent = 'Your health data stays locked';
+  }
+}
+
+function pinPress(d) {
+  if (pinBuffer.length >= 4) return;
+  pinBuffer += d;
+  updateDots();
+  if (pinBuffer.length === 4) {
+    setTimeout(() => handlePin(), 120);
+  }
+}
+
+function pinDel() {
+  pinBuffer = pinBuffer.slice(0, -1);
+  updateDots();
+  document.getElementById('pin-error').textContent = '';
+}
+
+function updateDots(err) {
+  for (let i = 0; i < 4; i++) {
+    const el = document.getElementById('d' + i);
+    el.className = 'pin-dot';
+    if (i < pinBuffer.length) el.classList.add(err ? 'error' : 'filled');
+  }
+}
+
+function handlePin() {
+  if (pinMode === 'setup') {
+    pinSetupFirst = pinBuffer;
+    pinBuffer = '';
+    updateDots();
+    pinMode = 'confirm';
+    document.getElementById('pin-title').textContent = 'Confirm PIN';
+    document.getElementById('pin-sub').textContent = 'Enter the same PIN again';
+    document.getElementById('pin-setup-note').textContent = '';
+  } else if (pinMode === 'confirm') {
+    if (pinBuffer === pinSetupFirst) {
+      localStorage.setItem(PIN_KEY, pinBuffer);
+      unlockApp();
+    } else {
+      showPinError('PINs do not match — try again');
+      pinMode = 'setup';
+      pinSetupFirst = '';
+      document.getElementById('pin-title').textContent = 'Create your PIN';
+      document.getElementById('pin-sub').textContent = 'Choose a 4-digit code';
+    }
+  } else {
+    const stored = localStorage.getItem(PIN_KEY);
+    if (pinBuffer === stored) {
+      unlockApp();
+    } else {
+      showPinError('Incorrect PIN');
+    }
+  }
+}
+
+function showPinError(msg) {
+  updateDots(true);
+  document.getElementById('pin-error').textContent = msg;
+  setTimeout(() => { pinBuffer = ''; updateDots(); }, 600);
+}
+
+function unlockApp() {
+  document.getElementById('pin-screen').style.display = 'none';
+  document.getElementById('app').style.display = 'flex';
+  refresh();
+}
+
+function lockApp() {
+  pinBuffer = '';
+  pinMode = 'enter';
+  document.getElementById('pin-title').textContent = 'Enter PIN';
+  document.getElementById('pin-sub').textContent = 'Your health data stays locked';
+  document.getElementById('pin-error').textContent = '';
+  updateDots();
+  document.getElementById('pin-screen').style.display = 'flex';
+  document.getElementById('app').style.display = 'none';
+}
+
+function changePin() {
+  pinBuffer = '';
+  pinMode = 'setup';
+  pinSetupFirst = '';
+  document.getElementById('pin-title').textContent = 'Create new PIN';
+  document.getElementById('pin-sub').textContent = 'Choose a new 4-digit code';
+  document.getElementById('pin-setup-note').textContent = 'Your old PIN will be replaced.';
+  document.getElementById('pin-error').textContent = '';
+  updateDots();
+  document.getElementById('pin-screen').style.display = 'flex';
+  document.getElementById('app').style.display = 'none';
+}
+
+// ── DATA ──
+function loadData() {
+  return JSON.parse(localStorage.getItem(DATA_KEY) || '{"logs":[],"weightLog":[]}');
+}
+function saveData(d) { localStorage.setItem(DATA_KEY, JSON.stringify(d)); }
+
+function todayKey() { return new Date().toISOString().split('T')[0]; }
+function nowTime() { return new Date().toLocaleTimeString('en-IN', {hour:'2-digit',minute:'2-digit'}); }
+
+function todayStats() {
+  const d = loadData(); const key = todayKey();
+  const tl = d.logs.filter(l => l.date === key);
+  const steps = tl.filter(l=>l.type==='steps').reduce((s,l)=>s+l.val,0);
+  const water = tl.filter(l=>l.type==='water').reduce((s,l)=>s+l.val,0);
+  const cal = tl.filter(l=>l.type==='food').reduce((s,l)=>s+l.cal,0);
+  const deficit = Math.round(TDEE - cal + steps * 0.085);
+  return {steps, water, cal, deficit};
+}
+
+// ── LOGGING ──
+function logSteps() {
+  const v = parseInt(document.getElementById('in-steps').value);
+  if (!v || v < 0) return;
+  const d = loadData();
+  d.logs.push({type:'steps',val:v,date:todayKey(),time:nowTime()});
+  saveData(d); document.getElementById('in-steps').value = '';
+  refresh(); showPage('dashboard', document.querySelector('.nav-item'));
+}
+
+function logWater() {
+  const v = parseInt(document.getElementById('in-water').value);
+  const d = loadData();
+  d.logs.push({type:'water',val:v,date:todayKey(),time:nowTime()});
+  saveData(d); refresh(); showPage('dashboard', document.querySelector('.nav-item'));
+}
+
+function logFood() {
+  const name = document.getElementById('in-food-name').value.trim();
+  const cal = parseInt(document.getElementById('in-food-cal').value);
+  const subtype = document.getElementById('in-food-type').value;
+  if (!name || !cal || cal < 0) return;
+  const d = loadData();
+  d.logs.push({type:'food',name,cal,subtype,date:todayKey(),time:nowTime()});
+  saveData(d);
+  document.getElementById('in-food-name').value = '';
+  document.getElementById('in-food-cal').value = '';
+  refresh(); showPage('dashboard', document.querySelector('.nav-item'));
+}
+
+function quickFood(name, subtype, cal) {
+  const d = loadData();
+  d.logs.push({type:'food',name,cal,subtype,date:todayKey(),time:nowTime()});
+  saveData(d); refresh(); showPage('dashboard', document.querySelector('.nav-item'));
+}
+
+function logWeight() {
+  const w = parseFloat(document.getElementById('in-weight').value);
+  if (!w || w < 40 || w > 250) return;
+  const d = loadData(); const key = todayKey();
+  d.weightLog = d.weightLog.filter(e=>e.date!==key);
+  d.weightLog.push({w,date:key});
+  d.weightLog.sort((a,b)=>a.date.localeCompare(b.date));
+  saveData(d); document.getElementById('in-weight').value = '';
+  refresh();
+}
+
+function deleteLog(idx) {
+  const d = loadData(); d.logs.splice(idx,1); saveData(d); refresh();
+}
+
+function clearToday() {
+  if (!confirm('Clear all of today\'s logs?')) return;
+  const d = loadData(); d.logs = d.logs.filter(l=>l.date!==todayKey()); saveData(d); refresh();
+}
+
+function resetAll() {
+  if (!confirm('Reset ALL data? This cannot be undone.')) return;
+  localStorage.removeItem(DATA_KEY); refresh();
+}
+
+// ── UI ──
+function showPage(name, btn) {
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(b=>b.classList.remove('active'));
+  document.getElementById('page-'+name).classList.add('active');
+  if (btn) btn.classList.add('active');
+  document.getElementById('content').scrollTop = 0;
+  if (name==='weight') renderWeightChart();
+  if (name==='history') updateHistory();
+}
+
+function refresh() {
+  const {steps,water,cal,deficit} = todayStats();
+  const d = loadData();
+  const latest = d.weightLog.length ? d.weightLog[d.weightLog.length-1].w : START_W;
+  const lost = Math.max(0, START_W - latest);
+  const rem = Math.max(0, latest - TARGET_W);
+  const wpct = Math.min(100, Math.round(lost/5*100));
+
+  document.getElementById('m-steps').textContent = steps.toLocaleString();
+  document.getElementById('m-water').innerHTML = water+'<span class="unit">ml</span>';
+  document.getElementById('m-cal').textContent = cal;
+  document.getElementById('m-def').textContent = deficit;
+
+  const sp = Math.min(100, Math.round(steps/STEP_GOAL*100));
+  const wp = Math.min(100, Math.round(water/WATER_GOAL*100));
+  const cp = Math.min(100, Math.round(cal/CAL_GOAL*100));
+  document.getElementById('pf-steps').style.width = sp+'%';
+  document.getElementById('pf-water').style.width = wp+'%';
+  document.getElementById('pf-cal').style.width = cp+'%';
+  document.getElementById('pt-steps').textContent = steps.toLocaleString()+' / 10,000';
+  document.getElementById('pt-water').textContent = water+' / 3,000ml';
+  document.getElementById('pt-cal').textContent = cal+' / 2,200';
+
+  document.getElementById('w-curr').innerHTML = latest.toFixed(1)+'<span class="wunit">kg</span>';
+  document.getElementById('w-lost').innerHTML = lost.toFixed(1)+'<span style="font-size:13px;color:var(--text2)">kg</span>';
+  document.getElementById('w-rem').innerHTML = rem.toFixed(1)+'<span style="font-size:13px;color:var(--text2)">kg</span>';
+  document.getElementById('pf-weight').style.width = wpct+'%';
+  document.getElementById('w-eta').textContent = wpct >= 100 ? '🎉 Goal reached, boss!' : wpct+'% · target Jul 31, 2026';
+  document.getElementById('h-weight').textContent = latest.toFixed(1)+' kg';
+  document.getElementById('h-date').textContent = new Date().toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+
+  const tip = TIPS[new Date().getDate() % TIPS.length];
+  document.getElementById('tip-banner').textContent = '💡 '+tip;
+
+  updateHistory();
+  updateMilestones();
+}
+
+function updateHistory() {
+  const d = loadData(); const key = todayKey();
+  const tl = d.logs.filter(l=>l.date===key).slice().reverse();
+  const el = document.getElementById('log-list');
+  if (!tl.length) { el.innerHTML = '<div style="color:var(--text3);font-size:13px;padding:0.5rem 0;">Nothing logged today.</div>'; }
+  else {
+    el.innerHTML = tl.map((l,ri) => {
+      const realIdx = d.logs.length - 1 - ri;
+      let icon='', iconClass='', txt='', right='';
+      if(l.type==='steps'){icon='👟';iconClass='steps';txt=l.val.toLocaleString()+' steps';right='';}
+      else if(l.type==='water'){icon='💧';iconClass='water';txt=l.val+'ml water';right='';}
+      else{icon=l.subtype==='snack'?'🍌':'🍛';iconClass=l.subtype;txt=l.name;right='<span class="log-cal">'+l.cal+' kcal</span>';}
+      return `<div class="log-item"><div class="log-left"><div class="log-icon ${iconClass}">${icon}</div><div><div class="log-text">${txt}</div><div class="log-time">${l.time}</div></div></div><div style="display:flex;align-items:center;gap:8px;">${right}<button class="del-btn" onclick="deleteLog(${realIdx})">×</button></div></div>`;
+    }).join('');
+  }
+
+  const streakEl = document.getElementById('streak-row');
+  const days = [];
+  for(let i=6;i>=0;i--){const dd=new Date();dd.setDate(dd.getDate()-i);days.push(dd.toISOString().split('T')[0]);}
+  streakEl.innerHTML = days.map(dk=>{
+    const s = d.logs.filter(l=>l.date===dk&&l.type==='steps').reduce((acc,l)=>acc+l.val,0);
+    const hit = s >= STEP_GOAL;
+    const lbl = new Date(dk+'T12:00:00').toLocaleDateString('en-IN',{weekday:'short'}).slice(0,2).toUpperCase();
+    return `<div class="streak-day"><div class="streak-dot ${hit?'hit':'miss'}">${lbl}</div><div class="streak-lbl">${s>=1000?(s/1000).toFixed(1)+'k':s||'—'}</div></div>`;
+  }).join('');
+}
+
+function updateMilestones() {
+  const d = loadData();
+  const latest = d.weightLog.length ? d.weightLog[d.weightLog.length-1].w : START_W;
+  const el = document.getElementById('milestones');
+  el.innerHTML = MILESTONES.map(m=>{
+    const met = latest <= m.target;
+    const icon = met ? '✅' : '⬜';
+    return `<div class="milestone-item"><div style="display:flex;align-items:center;"><span class="milestone-icon">${icon}</span><span class="milestone-date">${m.date}</span></div><span class="milestone-target">${m.target} kg</span></div>`;
+  }).join('');
+
+  const wh = document.getElementById('w-history');
+  if (!d.weightLog.length) { wh.innerHTML = '<div style="color:var(--text3);font-size:13px;padding:0.5rem 0;">No entries yet.</div>'; return; }
+  wh.innerHTML = d.weightLog.slice().reverse().slice(0,8).map(w=>
+    `<div class="log-item"><span style="font-size:13px;">${w.date}</span><span style="font-family:'DM Mono',monospace;font-size:13px;font-weight:500;">${w.w.toFixed(1)} kg</span></div>`
+  ).join('');
+}
+
+let wChartInst = null;
+function renderWeightChart() {
+  const d = loadData();
+  if (d.weightLog.length < 2) return;
+  const canvas = document.getElementById('wChart');
+  if (!canvas) return;
+  if (wChartInst) { wChartInst.destroy(); wChartInst = null; }
+  const labels = d.weightLog.map(w=>w.date.slice(5));
+  const data = d.weightLog.map(w=>w.w);
+  wChartInst = new Chart(canvas, {
+    type:'line',
+    data:{labels,datasets:[{label:'Weight',data,borderColor:'#f472b6',backgroundColor:'rgba(244,114,182,0.06)',pointBackgroundColor:'#f472b6',tension:0.3,fill:true,pointRadius:4}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{
+      y:{min:Math.max(90,Math.min(...data)-0.5),max:Math.max(...data)+0.5,ticks:{font:{size:10},callback:v=>v+'kg',color:'#5a5a72'},grid:{color:'rgba(255,255,255,0.05)'}},
+      x:{ticks:{font:{size:10},color:'#5a5a72',maxRotation:45},grid:{color:'rgba(255,255,255,0.05)'}}
+    }}
+  });
+}
+
+initPin();
+</script>
+</body>
+</html>
